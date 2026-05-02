@@ -1,0 +1,35 @@
+# Pre-session briefing: 30 menit sebelum window Asia & US
+# Asia: 23:30 UTC (06:30 WIB) — briefing untuk Asia open 00:00 UTC
+# US:   12:30 UTC (19:30 WIB) — briefing untuk US open 13:00 UTC
+
+name: pre-session-brief
+description: "Coach baca KB + trade history, kasih briefing 30 min before window"
+schedule: "30 23,12 * * 1-5"   # 23:30 dan 12:30 UTC, Senin-Jumat
+timezone: UTC
+
+# Tidak ada script eksternal — agent langsung dipanggil dengan prompt
+prompt: |
+  Mode: PRE-SESSION BRIEFING.
+
+  Window berikutnya: {{ now.hour == 12 ? 'US 13:00-17:00 UTC (20-00 WIB)' : 'ASIA 00:00-04:00 UTC (07-11 WIB)' }}.
+
+  Steps:
+  1. Baca STRATEGI-15M.md (focus section "Window aktif" + "Workflow")
+  2. Baca LESSONS.md untuk lesson terbaru
+  3. Baca trade-history.jsonl untuk performance week-to-date
+  4. Cek economic events 24h ke depan via shell:
+     `python3 {{ env.HL_REPO }}/economic_calendar.py upcoming 24`
+  5. Generate briefing format yang ada di SOUL.md mode 1.
+
+guards:
+  - file_exists_skip: "~/.hermes/profiles/scalper-journal/HALT.flag"
+
+notify:
+  - type: log
+    path: "~/.hermes/profiles/scalper-coach/logs/briefs.log"
+  - type: shell
+    command: |
+      echo "{{ agent.response | quote }}" | \
+        TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
+        TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
+        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "🧭 COACH BRIEF\n\n"

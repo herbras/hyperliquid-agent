@@ -1,0 +1,53 @@
+# Scan tiap 15 menit, HANYA di Asia + US window per STRATEGI-15M.md.
+# Asia: 00-03 UTC (07-11 WIB), US: 13-16 UTC (20-00 WIB). Senin-Jumat.
+# Sisanya silent — be good, be wide, don't watch the chart all day.
+
+name: market-scan-15m
+description: "Bias 1h + setup hunt 15m. Fire alert hanya saat ada GO-LONG/SHORT."
+schedule: "*/15 0-3,13-16 * * 1-5"   # 15m sync candle close, Asia + US window
+timezone: UTC
+
+# Run script lalu pipe stdout sebagai context ke agent.
+# Default: ccxt generic (binanceusdm). Untuk pure Hyperliquid, ganti
+# command ke fetch_hyperliquid.py dan set COINS env.
+script:
+  command: python3
+  args:
+    - "{{ env.HL_REPO }}/fetch_market_data.py"
+  env:
+    HL_REPO:  "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
+    EXCHANGE: "{{ env.EXCHANGE | default('binanceusdm') }}"
+    SYMBOLS:  "{{ env.SYMBOLS  | default('BTC/USDT:USDT,ETH/USDT:USDT,SOL/USDT:USDT') }}"
+    TF:       "1h"   # bias dari 1h, bukan 15m lagi (lihat STRATEGI-15M.md)
+  timeout: 60
+
+# Setelah script jalan, agent dipanggil dengan stdout sebagai input
+prompt: |
+  Berikut snapshot 1h terbaru (untuk bias). Klasifikasikan tiap pair sesuai
+  SOUL kamu. Reminder: kita di window {{ now.hour < 4 ? 'ASIA' : 'US' }} —
+  pair preferensi {{ now.hour < 4 ? 'HYPE/BNB/XRP/TON/SOL' : 'BTC/ETH/SOL' }}.
+
+  Hanya fire GO-LONG/GO-SHORT kalau Setup A candidate jelas (ada Fresh OB
+  1h + Discount/Premium zone align + bias 1h kuat). Sisanya SKIP — be wide.
+
+  {{ script.stdout }}
+
+# Filter: jangan trigger kalau lagi 2-SL halt atau event window
+guards:
+  - file_exists_skip: "~/.hermes/profiles/scalper-journal/HALT.flag"
+  - file_exists_skip: "~/.hermes/profiles/scalper-scout/PAUSE.flag"
+
+# Output ke mana — agent.response di-pipe ke notify_telegram.py
+notify:
+  - type: log
+    path: "~/.hermes/profiles/scalper-scout/logs/scans.log"
+
+  # Telegram alert: kirim agent response (klasifikasi bias) ke chat.
+  # Hanya fire kalau ada minimal 1 GO-LONG atau GO-SHORT (skip-only scan = silent).
+  - type: shell
+    when: "'GO-LONG' in agent.response or 'GO-SHORT' in agent.response"
+    command: |
+      echo "{{ agent.response | quote }}" | \
+        TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
+        TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
+        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "🎯 SCOUT 15m\n\n"

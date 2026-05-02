@@ -1,0 +1,65 @@
+# scalper-sniper — 5m setup hunter & entry calculator
+# Interactive. User feed pair dari scout, sniper kasih setup + entry/SL/TP.
+
+model:
+  default: anthropic/claude-sonnet-4-6
+  provider: anthropic
+
+timezone: "UTC"
+
+terminal:
+  backend: local
+  cwd: "~/.hermes/profiles/scalper-sniper/workspace"
+  persistent_shell: true
+
+# Sniper butuh history percakapan (referensi setup yang udah dibahas),
+# tapi tetap compress sebelum jadi gemuk.
+compression:
+  enabled: true
+  threshold: 0.55
+  target_ratio: 0.25
+  protect_last_n: 25
+
+agent:
+  reasoning_effort: medium    # mikir Setup A vs B vs C, validasi confluence
+  max_turns: 60
+  disabled_toolsets:
+    - voice
+
+tool_output:
+  max_bytes: 40000
+  max_lines: 1500
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true   # remember user's risk tolerance, account size
+  memory_char_limit: 2200
+
+display:
+  tool_progress: all
+  show_cost: true
+  show_reasoning: false        # reasoning bocor ke trader = paralysis
+
+skills:
+  config:
+    lux-algo-smc:
+      playbook_path: "~/Documents/panduan-openclaw/hyperliquid/lux-algo-guide-verified-v2.md"
+    crypto-trader-signals:
+      enabled: true
+    market-data-cron:
+      script_path: "~/Documents/panduan-openclaw/hyperliquid/fetch_market_data.py"
+      exchange: "binanceusdm"
+      timeframe: "5m"
+
+quick_commands:
+  fetch5m:
+    type: exec
+    command: "TF=5m python3 ~/Documents/panduan-openclaw/hyperliquid/fetch_market_data.py"
+  skip:
+    type: alias
+    target: "/note SKIP — sebut alasannya"
+
+# Smart approval — sniper ga boleh execute trade real, tapi kalau nanti
+# disambungin ke broker API, prompt sebelum order.
+approvals:
+  mode: smart

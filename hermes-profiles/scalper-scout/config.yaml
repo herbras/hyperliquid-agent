@@ -1,0 +1,61 @@
+# scalper-scout — 15m macro bias scanner
+# Cron-driven. Output: shortlist pair + bias + nearest FVG untuk hand-off ke sniper.
+
+model:
+  default: anthropic/claude-sonnet-4-6
+  provider: anthropic
+
+# London + NY session = waktu trading terbaik per playbook
+timezone: "UTC"
+
+terminal:
+  backend: local
+  cwd: "~/.hermes/profiles/scalper-scout/workspace"
+  persistent_shell: true
+
+# Compress agresif — scout cuma butuh state ringkas, bukan history panjang
+compression:
+  enabled: true
+  threshold: 0.40
+  target_ratio: 0.15
+  protect_last_n: 10
+
+agent:
+  reasoning_effort: low      # bias = mekanis (BOS / Discount / FVG); ga butuh reasoning berat
+  max_turns: 30
+  # Matikan toolset yang ga relevan biar context bersih
+  disabled_toolsets:
+    - browser
+    - voice
+
+# Tool output kecil aja — scout cuma butuh angka & label
+tool_output:
+  max_bytes: 20000
+  max_lines: 500
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: false   # scout impersonal, ga perlu profile user
+  memory_char_limit: 1500
+
+display:
+  tool_progress: new
+  show_cost: true
+  bell_on_complete: false
+
+# Skill yang harus tersedia (di ~/.hermes/skills/ atau profile-local)
+skills:
+  config:
+    market-data-cron:
+      script_path: "~/Documents/panduan-openclaw/hyperliquid/fetch_market_data.py"
+      exchange: "binanceusdm"
+      symbols: "BTC/USDT:USDT,ETH/USDT:USDT,SOL/USDT:USDT"
+      timeframe: "15m"
+
+quick_commands:
+  scan:
+    type: exec
+    command: "EXCHANGE=binanceusdm SYMBOLS='BTC/USDT:USDT,ETH/USDT:USDT,SOL/USDT:USDT' TF=15m python3 ~/Documents/panduan-openclaw/hyperliquid/fetch_market_data.py"
+  bias:
+    type: alias
+    target: "/scan"

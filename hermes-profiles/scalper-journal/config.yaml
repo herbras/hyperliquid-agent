@@ -1,0 +1,72 @@
+# scalper-journal — trade manager (live) & post-mortem (daily)
+# 2 mode: (1) live timer + alert untuk open positions, (2) end-of-session review.
+
+model:
+  default: anthropic/claude-sonnet-4-6
+  provider: anthropic
+
+timezone: "UTC"
+
+terminal:
+  backend: local
+  cwd: "~/.hermes/profiles/scalper-journal/workspace"
+  persistent_shell: true
+
+# Journal butuh memory panjang — daily/weekly stats
+compression:
+  enabled: true
+  threshold: 0.60
+  target_ratio: 0.30
+  protect_last_n: 30
+
+agent:
+  reasoning_effort: medium
+  max_turns: 60
+  disabled_toolsets:
+    - voice
+    - browser
+
+tool_output:
+  max_bytes: 30000
+  max_lines: 1000
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 3000   # journal = banyak konteks historis
+
+display:
+  tool_progress: new
+  show_cost: true
+
+skills:
+  config:
+    lux-algo-smc:
+      playbook_path: "~/Documents/panduan-openclaw/hyperliquid/lux-algo-guide-verified-v2.md"
+
+quick_commands:
+  open:
+    type: exec
+    command: "cat ~/.hermes/profiles/scalper-journal/state/open-positions.json 2>/dev/null || echo '[]'"
+  halt:
+    type: exec
+    command: |
+      touch ~/.hermes/profiles/scalper-journal/HALT.flag && \
+      echo "🛑 HALT — 2-SL daily stop. Scout & sniper refuse trade." | \
+        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify_telegram.py --plain && \
+      echo "HALT flag SET — telegram notified."
+  resume:
+    type: exec
+    command: |
+      rm -f ~/.hermes/profiles/scalper-journal/HALT.flag && \
+      echo "✅ HALT cleared. Trading resumed." | \
+        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify_telegram.py --plain && \
+      echo "HALT cleared."
+  daily:
+    type: alias
+    target: "/note Generate end-of-session review"
+  test-tg:
+    type: exec
+    command: |
+      echo "📱 Telegram test from scalper-journal — $(date -u +%FT%TZ)" | \
+        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify_telegram.py --plain

@@ -1,0 +1,49 @@
+# Varian Hyperliquid native — pakai ini ALIH-ALIH market-scan.yaml kalau
+# mau pure HL data (bukan Binance). Cron yang sama, schedule sama, tapi
+# script & env beda.
+
+name: market-scan-15m-hl
+description: "Hyperliquid native: 1h bias scan, Asia + US window only"
+schedule: "*/15 0-3,13-16 * * 1-5"   # Asia (00-03 UTC) + US (13-16 UTC), Sen-Jum
+timezone: UTC
+
+script:
+  command: python3
+  args:
+    - "{{ env.HL_REPO }}/fetch_hyperliquid.py"
+  env:
+    HL_REPO: "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
+    COINS:   "{{ env.COINS   | default('BTC,ETH,SOL,HYPE') }}"
+    TF:      "1h"   # bias dari 1h per STRATEGI-15M.md
+    CANDLES: "48"
+  timeout: 30
+
+prompt: |
+  Snapshot Hyperliquid 1h (bias frame). Klasifikasikan tiap coin per SOUL
+  kamu — be selective, hanya fire GO-LONG/GO-SHORT untuk Setup A candidate
+  yang jelas.
+
+  Window saat ini: {{ now.hour < 4 ? 'ASIA (Tokyo open)' : 'US (NY core)' }}.
+  Pair preferensi window ini: {{ now.hour < 4 ? 'HYPE, BNB, XRP, TON, SOL — pair retail Asia' : 'BTC, ETH, SOL — volume tertinggi' }}.
+
+  Funding HL = per-jam (sudah diskalakan di script). Field `open_interest`
+  per coin: naik OI + price up = konfirmasi trend; turun OI + price up =
+  short squeeze (less reliable).
+
+  {{ script.stdout }}
+
+guards:
+  - file_exists_skip: "~/.hermes/profiles/scalper-journal/HALT.flag"
+  - file_exists_skip: "~/.hermes/profiles/scalper-scout/PAUSE.flag"
+
+notify:
+  - type: log
+    path: "~/.hermes/profiles/scalper-scout/logs/scans-hl.log"
+
+  - type: shell
+    when: "'GO-LONG' in agent.response or 'GO-SHORT' in agent.response"
+    command: |
+      echo "{{ agent.response | quote }}" | \
+        TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
+        TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
+        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "🟣 SCOUT-HL 15m\n\n"

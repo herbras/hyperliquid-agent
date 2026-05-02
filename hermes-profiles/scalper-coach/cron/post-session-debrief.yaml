@@ -1,0 +1,36 @@
+# Post-session debrief: 15 menit setelah window Asia & US selesai
+# Hanya fire kalau ada trade di session tsb (filter di prompt)
+
+name: post-session-debrief
+description: "Coach review session yg baru selesai, kasih lesson, append ke LESSONS.md"
+schedule: "15 4,17 * * 1-5"   # 04:15 dan 17:15 UTC, Senin-Jumat
+timezone: UTC
+
+prompt: |
+  Mode: POST-SESSION DEBRIEF.
+
+  Session yang baru selesai: {{ now.hour == 4 ? 'ASIA (00-04 UTC)' : 'US (13-17 UTC)' }}.
+
+  Steps:
+  1. Baca trade-history.jsonl, filter trade dengan `closed_at` di window 4 jam terakhir.
+  2. Kalau TIDAK ADA trade di session itu, output tunggal:
+     "[COACH] No trades in {{ session }}. Disiplin sustained."
+     Lalu STOP — jangan kirim notif.
+  3. Kalau ADA trade, baca STRATEGI-15M.md & lux-algo-guide untuk reference,
+     generate debrief format SOUL.md mode 2.
+  4. Append lesson ke LESSONS.md via:
+     Bash: `cat >> ~/.hermes/profiles/scalper-journal/state/LESSONS.md << 'EOF'
+     <lesson content>
+     EOF`
+
+guards:
+  - file_exists_skip: "~/.hermes/profiles/scalper-journal/HALT.flag"
+
+notify:
+  - type: shell
+    when: "'no trades' not in agent.response.lower() and 'disiplin sustained' not in agent.response.lower()"
+    command: |
+      echo "{{ agent.response | quote }}" | \
+        TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
+        TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
+        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "📓 COACH DEBRIEF\n\n"

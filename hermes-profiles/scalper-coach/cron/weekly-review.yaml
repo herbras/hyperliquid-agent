@@ -1,0 +1,32 @@
+# Weekly review: Jumat 17:30 UTC (00:30 WIB Sabtu) setelah US window selesai
+
+name: weekly-review
+description: "Aggregate seminggu, deteksi pola, kasih recommendation"
+schedule: "30 17 * * 5"   # Jumat 17:30 UTC
+timezone: UTC
+
+prompt: |
+  Mode: WEEKLY REVIEW.
+
+  Steps:
+  1. Baca trade-history.jsonl, ambil semua trade dengan closed_at di 7 hari terakhir.
+  2. Baca LESSONS.md untuk lesson yang sudah ada.
+  3. Baca STRATEGI-15M.md untuk KPI target.
+  4. Generate review format SOUL.md mode 3 (weekly).
+  5. **Detect pattern**:
+     - Setup yang konsisten win → reinforce
+     - Setup yang konsisten loss → recommend skip atau adjust
+     - Window yang lebih profitable → lean ke sana
+     - Pair yang lebih profitable di window mana
+  6. Append ke LESSONS.md dengan format mingguan + rule update kalau ada.
+  7. Output ringkas (max 50 baris) untuk Telegram.
+
+notify:
+  - type: log
+    path: "~/.hermes/profiles/scalper-coach/logs/weekly.log"
+  - type: shell
+    command: |
+      echo "{{ agent.response | quote }}" | \
+        TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
+        TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
+        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "📊 COACH WEEKLY\n\n"

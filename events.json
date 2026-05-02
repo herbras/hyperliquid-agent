@@ -1,0 +1,101 @@
+[
+  {
+    "id": "2026-05-04-fed_speak-547473",
+    "type": "FED_SPEAK",
+    "release_at": "2026-05-04T16:50:00Z",
+    "impact": "medium",
+    "name": "FOMC Member Williams Speaks",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/fomc-member-williams-speaks-1585"
+  },
+  {
+    "id": "2026-05-05-fed_speak-547481",
+    "type": "FED_SPEAK",
+    "release_at": "2026-05-05T16:30:00Z",
+    "impact": "medium",
+    "name": "FOMC Member Bowman Speaks",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/fomc-member-bowman-speaks-1835"
+  },
+  {
+    "id": "2026-05-07-fed_speak-547477",
+    "type": "FED_SPEAK",
+    "release_at": "2026-05-07T19:30:00Z",
+    "impact": "medium",
+    "name": "FOMC Member Williams Speaks",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/fomc-member-williams-speaks-1585"
+  },
+  {
+    "id": "2026-05-08-nfp-546555",
+    "type": "NFP",
+    "release_at": "2026-05-08T12:30:00Z",
+    "impact": "high",
+    "name": "Nonfarm Payrolls  (Apr)",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/nonfarm-payrolls-227"
+  },
+  {
+    "id": "2026-05-08-fed_speak-547480",
+    "type": "FED_SPEAK",
+    "release_at": "2026-05-08T23:30:00Z",
+    "impact": "medium",
+    "name": "FOMC Member Bowman Speaks",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/fomc-member-bowman-speaks-1835"
+  },
+  {
+    "id": "2026-05-12-cpi-546684",
+    "type": "CPI",
+    "release_at": "2026-05-12T12:30:00Z",
+    "impact": "high",
+    "name": "CPI (YoY)  (Apr)",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/cpi-733"
+  },
+  {
+    "id": "2026-06-17-fomc-516970",
+    "type": "FOMC",
+    "release_at": "2026-06-17T18:00:00Z",
+    "impact": "high",
+    "name": "Fed Interest Rate Decision",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/interest-rate-decision-168"
+  },
+  {
+    "id": "2026-07-29-fomc-516971",
+    "type": "FOMC",
+    "release_at": "2026-07-29T18:00:00Z",
+    "impact": "high",
+    "name": "Fed Interest Rate Decision",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/interest-rate-decision-168"
+  },
+  {
+    "id": "2026-09-16-fomc-516972",
+    "type": "FOMC",
+    "release_at": "2026-09-16T18:00:00Z",
+    "impact": "high",
+    "name": "Fed Interest Rate Decision",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/interest-rate-decision-168"
+  },
+  {
+    "id": "2026-10-28-fomc-516973",
+    "type": "FOMC",
+    "release_at": "2026-10-28T18:00:00Z",
+    "impact": "high",
+    "name": "Fed Interest Rate Decision",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/interest-rate-decision-168"
+  },
+  {
+    "id": "2026-12-09-fomc-516974",
+    "type": "FOMC",
+    "release_at": "2026-12-09T19:00:00Z",
+    "impact": "high",
+    "name": "Fed Interest Rate Decision",
+    "source": "investing.com",
+    "source_url": "https://www.investing.com/economic-calendar/interest-rate-decision-168"
+  }
+]

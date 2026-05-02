@@ -1,0 +1,30 @@
+# Cek posisi terbuka tiap 5 menit — push reminder ke Telegram saat
+# menit-5/20/40/60 elapsed dari open time. Implementasi 60-menit hard timer
+# di playbook ("Manajemen Trade Aktif").
+
+name: timer-check-5m
+description: "Cek open-positions.json, kirim reminder timer"
+schedule: "*/5 * * * *"   # tiap 5 menit, 24/7
+timezone: UTC
+
+script:
+  command: python3
+  args:
+    - "{{ env.HL_REPO }}/timer_check.py"
+  env:
+    HL_REPO: "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
+    POSITIONS_FILE: "~/.hermes/profiles/scalper-journal/state/open-positions.json"
+  timeout: 15
+
+# Tidak panggil agent — script langsung output reminder, di-pipe ke telegram.
+# Script return exit 0 dengan stdout kosong = silent (no reminder due).
+skip_agent: true
+
+notify:
+  - type: shell
+    when: "script.stdout"   # cuma fire kalau script ada output
+    command: |
+      echo "{{ script.stdout | quote }}" | \
+        TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
+        TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
+        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "⏱ JOURNAL TIMER\n\n"
