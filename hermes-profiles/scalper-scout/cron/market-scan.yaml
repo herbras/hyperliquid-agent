@@ -7,28 +7,36 @@ description: "Bias 1h + setup hunt 15m. Fire alert hanya saat ada GO-LONG/SHORT.
 schedule: "*/15 0-3,13-16 * * 1-5"   # 15m sync candle close, Asia + US window
 timezone: UTC
 
-# Run script lalu pipe stdout sebagai context ke agent.
-# Default: ccxt generic (binanceusdm). Untuk pure Hyperliquid, ganti
-# command ke fetch_hyperliquid.py dan set COINS env.
+# Run scan_with_feed.py: combine market data (ccxt fallback chain) + telegram
+# news feed. Output JSON dengan dua section: `market` + `feed`.
 script:
   command: python3
   args:
-    - "{{ env.HL_REPO }}/data/fetch_market_data.py"
+    - "{{ env.HL_REPO }}/data/scan_with_feed.py"
   env:
-    HL_REPO:  "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
-    EXCHANGE: "{{ env.EXCHANGE | default('binanceusdm') }}"
-    SYMBOLS:  "{{ env.SYMBOLS  | default('BTC/USDT:USDT,ETH/USDT:USDT,SOL/USDT:USDT') }}"
-    TF:       "1h"   # bias dari 1h, bukan 15m lagi (lihat STRATEGI-15M.md)
+    HL_REPO:           "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
+    DATA_SOURCE:       "ccxt"
+    EXCHANGE:          "{{ env.EXCHANGE          | default('htx') }}"
+    EXCHANGE_FALLBACK: "{{ env.EXCHANGE_FALLBACK | default('gate,hyperliquid') }}"
+    SYMBOLS:           "{{ env.SYMBOLS  | default('BTC/USDT,ETH/USDT,SOL/USDT,XRP/USDT') }}"
+    TF:                "1h"
+    TELEGRAM_CHANNEL:  "{{ env.TELEGRAM_CHANNEL | default('marketfeed') }}"
+    TELEGRAM_HOURS:    "4"
+    TELEGRAM_LIMIT:    "8"
   timeout: 60
 
-# Setelah script jalan, agent dipanggil dengan stdout sebagai input
 prompt: |
-  Berikut snapshot 1h terbaru (untuk bias). Klasifikasikan tiap pair sesuai
-  SOUL kamu. Reminder: kita di window {{ now.hour < 4 ? 'ASIA' : 'US' }} —
-  pair preferensi {{ now.hour < 4 ? 'HYPE/BNB/XRP/TON/SOL' : 'BTC/ETH/SOL' }}.
+  Snapshot 2 section:
+  1. `market` → 1h bias frame (price, FR, EMA21, FVG, macro_bias)
+  2. `feed`   → @marketfeed Telegram news 4 jam terakhir
+                ("skipped" kalau credentials belum set — non-blocking)
 
-  Hanya fire GO-LONG/GO-SHORT kalau Setup A candidate jelas (ada Fresh OB
-  1h + Discount/Premium zone align + bias 1h kuat). Sisanya SKIP — be wide.
+  Klasifikasikan tiap pair per SOUL kamu. Window {{ now.hour < 4 ? 'ASIA' : 'US' }} —
+  pair priority {{ now.hour < 4 ? 'SOL > HYPE > XRP/BNB' : 'SOL > BTC > ETH' }}.
+
+  Hanya fire GO-LONG/GO-SHORT kalau Setup A candidate jelas. Cek `feed` —
+  kalau ada news high-impact (CPI/Fed/hack/listing) dalam 1h terakhir,
+  PAUSE jangan trade dulu sampai volatilitas reda.
 
   {{ script.stdout }}
 

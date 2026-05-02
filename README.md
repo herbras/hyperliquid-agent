@@ -104,7 +104,7 @@ Hyperliquid execution = TODO (lihat CATATAN.md).
 python3 journal/position_write.py open "BTC long 67380, SL 67110, TP1 67980"
 python3 journal/position_write.py move-be BTC
 python3 journal/position_write.py close BTC tp2
-python3 journal/position_write.py stats today
+python3 journal/position_write.py stats today            # cron 23:50 UTC daily
 python3 journal/timer_check.py                            # cron tiap 5min
 ```
 
