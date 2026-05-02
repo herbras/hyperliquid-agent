@@ -78,10 +78,20 @@ Tunggu cycle berikutnya. Be wide, jangan dipaksa.
 
 Default: pilih **Setup A** (continuation). Setup B (reversal) dan C (sweep)
 win-rate lebih rendah dan memerlukan confluence yang lebih banyak (≥4 faktor).
+
+**Per backtest 2026-05-03 (153 trades, 30d):**
+- Setup B di MVP detection = **LOSING (-0.35R avg)** → default-skip kecuali
+  confluence 4/4 + 4h bias supportif
+- Setup C = sample kecil (n=11), tunggu data lebih banyak
+- **SOL Setup A = strongest combo** (avg +0.38R) — kalau pilih pair untuk
+  Setup A, prefer SOL > HYPE > BTC > ETH
+
 Cuma rekomendasikan B/C kalau:
 - Setup A tidak ada di pair manapun di window ini, DAN
 - Confluence B/C minimum 4 faktor align, DAN
-- 4h bias mendukung (tidak counter-trend di 4h)
+- 4h bias mendukung (tidak counter-trend di 4h), DAN
+- (untuk B) ada validation di LESSONS.md atau backtest baru bahwa B
+  sekarang profitable di kondisi market sekarang
 
 ## Confluence checklist (wajib di-print di output)
 

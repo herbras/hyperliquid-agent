@@ -290,18 +290,26 @@ Total screen time scalping hari ini: **~30 menit total**, bukan 8 jam.
 - [ ] **Auto-detect 2-SL → HALT.flag** — journal SOUL handle ini di
       narrative, tapi belum tested e2e. Verify hari pertama trading.
 
-- [ ] **Backtest Setup B & C** — saat ini cuma Setup A. B/C butuh logic
-      detection lebih kompleks (CHoCH detection, EQH/EQL sweep). Output
-      WR per setup biar bisa di-compare apakah kita harus skip B/C
-      seperti yang STRATEGI-15M.md sarankan.
+- [x] **Backtest Setup B & C** — `backtest_15m.py` extended dengan 3
+      detector (Setup A continuation, B reversal CHoCH+FVG, C sweep+EQL).
+      Result 153 trades 30d × 4 pair: A marginal positif (avg +0.17R), B
+      LOSING (-0.35R, n=17, validate skip rule), C inconclusive (n=11).
+      SOL Setup A standout (avg +0.38R, hit STRATEGI-15M.md target).
 
-- [ ] **Multi-pair backtest aggregator** — sekarang per-pair (BTC, SOL,
-      dst). Perlu script loop semua pair + comparative report (which pair
-      paling profitable di window mana, per setup).
+- [x] **Multi-pair backtest aggregator** — `backtest/multi_pair.py` loop
+      pair × setup × N hari, output pivot table dengan verdict per cell
+      (HIT TARGET / LOSING / MARGINAL). Auto-runs `backtest_15m.py --quiet`
+      per pair, parse JSON, agregasi ke per-setup totals.
 
 - [ ] **Backtest cross-venue** — replay sama strategi di Bybit vs HL data
       30 hari, lihat venue mana lebih profitable untuk pair yang sama
-      (slippage, funding cost, liquidation depth).
+      (slippage, funding cost, liquidation depth). BLOCKED dari huda-server
+      karena Bybit IP-restricted, bisa run dari mesin lokal.
+
+- [ ] **Tighter Setup A detection** — backtest MVP cuma pakai FVG sebagai
+      OB proxy. Improve dengan: Bullish OB detection nyata (last bearish
+      candle sebelum BOS), volume filter (rejection > masuk-OB), 4h bias
+      filter. Expected naikkan WR Setup A dari 48.8% ke 55-65% target.
 
 ### Quality of life
 

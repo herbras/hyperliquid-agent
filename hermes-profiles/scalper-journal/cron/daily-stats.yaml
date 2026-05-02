@@ -1,0 +1,30 @@
+# Daily stats summary — fire 23:50 UTC tiap hari Senin-Jumat
+# (~ 06:50 WIB hari berikutnya), setelah US window selesai jam 17:00 UTC.
+#
+# Output `cmd_stats(today)` selalu non-empty: kalau ada trade → WR/R/SL count,
+# kalau tidak ada → "No trades in scope=today" (heartbeat harian).
+#
+# Pakai bareng coach `post-session-debrief` (per-session) + `weekly-review`
+# (Jumat). Ini yang ngisi gap "ringkasan harian" di antara keduanya.
+
+name: daily-stats
+description: "Daily trade-history summary → Telegram"
+schedule: "50 23 * * 1-5"   # 23:50 UTC, Sen-Jum
+timezone: UTC
+
+script:
+  command: python3
+  args:
+    - "{{ env.HL_REPO }}/journal/position_write.py"
+    - "stats"
+    - "today"
+  env:
+    HL_REPO: "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
+  timeout: 15
+
+# Output langsung — tidak panggil agent.
+skip_agent: true
+
+notify:
+  - type: shell
+    when: "script.stdout"

@@ -262,6 +262,50 @@ ada Setup A, **itu bagus**. Bukan kerugian. Capital preservation = win.
 
 ---
 
+## Backtest data (MVP — 2026-05-03)
+
+Run: 153 trades, 30 hari, 4 pair (BTC/ETH/SOL/HYPE), Hyperliquid native data,
+MVP detection (FVG-as-OB-proxy, ema21-as-bias-proxy, no volume filter).
+
+```
+Pair  Setup    N   WR%   totalR  avgR
+─────────────────────────────────────
+SOL   A       28  64.3  +10.57  +0.38   ← HIT TARGET (55-65% WR, +0.4R)
+HYPE  A       36  50.0   +3.53  +0.10
+ETH   A       26  46.2   +2.88  +0.11
+BTC   A       35  37.1   +4.49  +0.13
+─────────────────────────────────────
+Setup A total 125  48.8% +21.46R +0.17R   MARGINAL (di bawah target)
+Setup B total  17  29.4%  -6.00R -0.35R   ✗ LOSING — confirm skip rule
+Setup C total  11  63.6%  +0.39R +0.04R   sample kecil (inconclusive)
+```
+
+**Konklusi data:**
+- **SOL Setup A** = pair-setup paling profitable; lean ke sini di US window
+- **Setup B unprofitable** di MVP detection — validasi rule "default-skip B"
+- **Setup C** butuh sampel lebih banyak sebelum conclude
+- Setup A overall **48.8% WR** — di bawah target 55-65%, butuh tighter
+  detection (real OB + volume filter + 4h bias)
+
+**Caveat:** MVP backtest **conservative estimate**. Detection sederhana
+(FVG-as-OB) miss banyak Setup A nyata. Dengan full SMC implementation,
+WR Setup A diharapkan naik 5-10%.
+
+**Pair priority adjustment per backtest:**
+
+| Window | Sebelum backtest | Sesudah backtest |
+|---|---|---|
+| Asia (00-04 UTC) | HYPE, BNB, XRP, TON, SOL | **SOL > HYPE** (rest tetap, kalau ada di venue) |
+| US (13-17 UTC) | BTC, ETH, SOL | **SOL > BTC > ETH** (urutan match expectancy) |
+
+Run backtest sendiri:
+```bash
+python3 backtest/multi_pair.py 30 BTC ETH SOL HYPE   # 30d, default 4 pair
+python3 backtest/backtest_15m.py SOL 60 hl --setup A # SOL Setup A 60d detail
+```
+
+---
+
 ## Akurasi yang realistis (15m + selective)
 
 Per backtest komunitas SMC + 15m timeframe + selective entry:

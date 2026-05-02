@@ -14,7 +14,7 @@
 |---|---|---|
 | `scalper-scout` | 1h bias scanner — fire alert hanya saat ada GO-LONG/SHORT di Setup A candidate | Cron tiap 15min, Asia + US window |
 | `scalper-sniper` | 15m setup hunter — hitung entry/SL/TP, enforce 9 aturan SKIP | Manual chat saat scout fire |
-| `scalper-journal` | Trade manager — `position_write.py` auto-track, timer 3 jam, BE rule, 2-SL halt | Cron tiap 5min (timer-check), manual on entry/exit |
+| `scalper-journal` | Trade manager — `position_write.py` auto-track, timer 3 jam, BE rule, 2-SL halt | Cron tiap 5min (timer-check) + 23:50 UTC daily-stats, manual on entry/exit |
 | **`scalper-coach`** | **Knowledge-based coach — baca KB + history, kasih briefing/debrief/weekly review, auto-PAUSE event window** | **Cron: pre-session (12:30/23:30 UTC), debrief (04:15/17:15 UTC), weekly (Jum 17:30 UTC), event-watch tiap 10min** |
 
 ## File scripts (di parent dir `hyperliquid/`)

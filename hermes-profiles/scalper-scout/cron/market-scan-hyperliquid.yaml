@@ -10,21 +10,33 @@ timezone: UTC
 script:
   command: python3
   args:
-    - "{{ env.HL_REPO }}/data/fetch_hyperliquid.py"
+    - "{{ env.HL_REPO }}/data/scan_with_feed.py"
   env:
-    HL_REPO: "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
-    COINS:   "{{ env.COINS   | default('BTC,ETH,SOL,HYPE') }}"
-    TF:      "1h"   # bias dari 1h per STRATEGI-15M.md
-    CANDLES: "48"
-  timeout: 30
+    HL_REPO:          "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
+    DATA_SOURCE:      "hl"
+    COINS:            "{{ env.COINS | default('BTC,ETH,SOL,HYPE') }}"
+    TF:               "1h"
+    CANDLES:          "48"
+    TELEGRAM_CHANNEL: "{{ env.TELEGRAM_CHANNEL | default('marketfeed') }}"
+    TELEGRAM_HOURS:   "4"
+    TELEGRAM_LIMIT:   "8"
+  timeout: 60
 
 prompt: |
-  Snapshot Hyperliquid 1h (bias frame). Klasifikasikan tiap coin per SOUL
-  kamu — be selective, hanya fire GO-LONG/GO-SHORT untuk Setup A candidate
-  yang jelas.
+  Snapshot terdiri dari 2 section:
+  1. `market` → 1h bias frame Hyperliquid (price, FR, OI, EMA21, FVG)
+  2. `feed`   → Telegram channel @marketfeed news 4 jam terakhir
+               (kosong / "skipped" kalau credentials belum set)
+
+  Klasifikasikan tiap coin per SOUL kamu — be selective, hanya fire
+  GO-LONG/GO-SHORT untuk Setup A candidate yang jelas.
 
   Window saat ini: {{ now.hour < 4 ? 'ASIA (Tokyo open)' : 'US (NY core)' }}.
-  Pair preferensi window ini: {{ now.hour < 4 ? 'HYPE, BNB, XRP, TON, SOL — pair retail Asia' : 'BTC, ETH, SOL — volume tertinggi' }}.
+  Pair preferensi: {{ now.hour < 4 ? 'SOL > HYPE > pair retail Asia' : 'SOL > BTC > ETH (per backtest)' }}.
+
+  Cek `feed` untuk catalyst fundamental (CPI release, Fed speak, exchange
+  news, hack, listing, dst). Kalau ada news high-impact dalam 1 jam terakhir,
+  PAUSE — tunggu volatilitas reda dulu sebelum entry.
 
   Funding HL = per-jam (sudah diskalakan di script). Field `open_interest`
   per coin: naik OI + price up = konfirmasi trend; turun OI + price up =
