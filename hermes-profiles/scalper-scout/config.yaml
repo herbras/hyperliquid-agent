@@ -2,8 +2,8 @@
 # Cron-driven. Output: shortlist pair + bias + nearest FVG untuk hand-off ke sniper.
 
 model:
-  default: anthropic/claude-sonnet-4-6
-  provider: anthropic
+  default: x-ai/grok-4.1-fast
+  provider: openrouter
 
 # London + NY session = waktu trading terbaik per playbook
 timezone: "UTC"

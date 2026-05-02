@@ -189,21 +189,45 @@ python3 ../backtest/backtest_15m.py SOL 14 ccxt     # 14 hari Binance
 
 ## Yang HARUS di-set sebelum jalan
 
-1. `.env` tiap profile: `ANTHROPIC_API_KEY`, `HL_REPO`, `TELEGRAM_*`.
-2. Pilih mode A atau B (bukan dua-duanya aktif bersamaan — duplikat alert).
+1. `.env` tiap profile: `OPENROUTER_API_KEY`, `HL_REPO`, `TELEGRAM_*`.
+2. Pilih mode A / B / C di scout (htx, hyperliquid, atau bybit — pick yang reachable
+   dari mesin kamu, lihat `data/exchange_picker.py recommend`).
 3. Cron schedule timezone — default `UTC`, sesuaikan di `cron/*.yaml` kalau
-   perlu. London 07-12 UTC, NY 13-17 UTC adalah default sweet-spot per playbook.
+   perlu. Asia 00-04 UTC + US 13-17 UTC adalah default per `STRATEGI-15M.md`.
 4. Inspect file di `state/` setelah hari pertama — pastikan `open-positions.json`
    ke-update dengan format yang `timer_check.py` baca.
 
-## Memilih model
+## Provider: OpenRouter (default)
 
-Default `anthropic/claude-sonnet-4-6` di tiga profile. Kalau mau lebih murah
-untuk scout (tugasnya mekanis), set:
+Default provider: **OpenRouter** (`provider: openrouter`). Satu API key untuk
+akses 100+ model dari banyak provider. Set di `.env`:
 
 ```bash
-scalper-scout config set model.default anthropic/claude-haiku-4-5-20251001
+OPENROUTER_API_KEY=sk-or-v1-...
 ```
 
-Untuk sniper, **jangan turunkan** ke haiku — confluence reasoning butuh sonnet
-minimal. Untuk journal, sonnet juga preferred (post-mortem lebih useful).
+Dapat key di https://openrouter.ai/keys.
+
+### Memilih model per profile
+
+Default `anthropic/claude-sonnet-4.6` di 4 profile. Switch lewat `hermes`:
+
+```bash
+# Lebih murah untuk scout (tugasnya mekanis)
+hermes -p scalper-scout config set model.default openrouter/anthropic/claude-haiku-4.5
+
+# Cobain non-Claude
+hermes -p scalper-scout config set model.default openrouter/google/gemini-2.5-flash
+hermes -p scalper-coach config set model.default openrouter/qwen/qwen-2.5-72b-instruct
+hermes -p scalper-coach config set model.default openrouter/deepseek/deepseek-r1
+```
+
+| Profile | Tugas | Recommended model |
+|---|---|---|
+| scout | Mekanis (klasifikasi GO-LONG/SKIP) | haiku-4.5 / gemini-2.5-flash (cepat, murah) |
+| sniper | Reasoning confluence A/B/C | sonnet-4.6 (jangan turunkan) |
+| journal | Track + post-mortem ringkas | sonnet-4.6 atau haiku |
+| coach | Synthesize KB + history | sonnet-4.6 (butuh context window besar) |
+
+OpenRouter kasih kamu fleksibilitas mix model per profile sesuai cost vs
+kualitas trade-off.

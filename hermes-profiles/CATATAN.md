@@ -126,9 +126,10 @@ hyperliquid/
 ├── crypto-trader-signals-v4.skill     # binary skill artifact
 │
 ├── data/                              # market data fetchers (read-only)
-│   ├── fetch_market_data.py           # ccxt generic (Binance/OKX/dst)
+│   ├── fetch_market_data.py           # ccxt generic, EXCHANGE_FALLBACK chain
 │   ├── fetch_hyperliquid.py           # Hyperliquid native /info API
-│   └── fetch_bybit.py                 # Bybit V5 public API
+│   ├── fetch_bybit.py                 # Bybit V5 public API
+│   └── exchange_picker.py             # discover/test/pick ccxt exchange
 │
 ├── trade/                             # order execution (high-stakes, dry-run default)
 │   ├── bybit_execute.py               # V5 HMAC, place/position/cancel
@@ -258,10 +259,16 @@ Total screen time scalping hari ini: **~30 menit total**, bukan 8 jam.
 
 ### Trading execution (paling impactful kalau jadi)
 
-- [ ] **Hyperliquid trade execution via SDK** — sub-account dengan agent
-      wallet. Sniper validate setup → confirm → auto-place order limit di
-      50% OB. SL/TP pre-set. Pakai HL Python SDK.
-      Saat ini sniper cuma kasih level, user manual order.
+- [x] **Hyperliquid trade execution via SDK** — `trade/hyperliquid_execute.py`
+      selesai. Pakai hyperliquid-python-sdk + eth-account. Pattern sama dengan
+      Bybit: preflight (agent ≠ main wallet check, balance, positions),
+      place dry-run default (main limit Gtc + SL trigger market + TP trigger
+      limit), dua barrier (HL_DRY_RUN=0 + --confirm), position, cancel-all.
+      Wired ke sniper SOUL execution flow.
+
+      Setup workflow user (sekali): app.hyperliquid.xyz → Settings → API
+      → "Authorize API Wallet" → save agent private key di .env (BUKAN
+      main wallet key — preflight refuse kalau salah).
 
 - [x] **Bybit trade execution wrapper minimal** — `bybit_execute.py`
       (HMAC V5, dry-run default), `position_size.py` (qty calc dari
@@ -302,6 +309,15 @@ Total screen time scalping hari ini: **~30 menit total**, bukan 8 jam.
       pair/entry/SL/side, fetch balance dari Bybit (atau --balance manual),
       output qty + notional + margin + JSON parsable. Auto-SKIP saat SL
       > 1.5% per STRATEGI-15M.md.
+
+- [x] **ccxt exchange picker + fallback chain** — `exchange_picker.py` (list,
+      test, info, try, recommend). `fetch_market_data.py` extended dengan
+      `EXCHANGE_FALLBACK` env (auto-failover saat primary exchange blocked).
+      Penting untuk VPS yang IP-blocked dari Binance/Bybit.
+
+      Tested di huda-server (VPS Asia): **HTX, Gate, Hyperliquid** reachable.
+      Binance/Bybit/OKX/KuCoin/MEXC/Bitget/Kraken/BitMEX/Deribit/Phemex/Coinbase
+      timeout dari VPS region ini. Default profile: `EXCHANGE=htx`.
 
 - [ ] **Cross-venue PAUSE.flag** — saat ini PAUSE.flag global. Mungkin
       butuh per-venue (Bybit halt karena CEX downtime tidak harus halt

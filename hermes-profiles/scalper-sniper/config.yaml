@@ -2,8 +2,8 @@
 # Interactive. User feed pair dari scout, sniper kasih setup + entry/SL/TP.
 
 model:
-  default: anthropic/claude-sonnet-4-6
-  provider: anthropic
+  default: x-ai/grok-4.1-fast
+  provider: openrouter
 
 timezone: "UTC"
 
@@ -68,13 +68,21 @@ quick_commands:
     type: alias
     target: "/note SKIP — sebut alasannya"
 
-  # === Execution helpers (default DRY-RUN) ===
-  preflight:
+  # === Execution helpers — Bybit (default DRY-RUN) ===
+  preflight-bybit:
     type: exec
     command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/trade/bybit_execute.py preflight"
-  position:
+  position-bybit:
     type: exec
     command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/trade/bybit_execute.py position --pair ${PAIR:-BTCUSDT}"
+
+  # === Execution helpers — Hyperliquid (default DRY-RUN) ===
+  preflight-hl:
+    type: exec
+    command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/trade/hyperliquid_execute.py preflight"
+  position-hl:
+    type: exec
+    command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/trade/hyperliquid_execute.py position ${COIN:+--coin $COIN}"
 
 # Smart approval — sniper ga boleh execute trade real, tapi kalau nanti
 # disambungin ke broker API, prompt sebelum order.

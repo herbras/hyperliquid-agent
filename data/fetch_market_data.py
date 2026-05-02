@@ -1,12 +1,22 @@
 #!/usr/bin/env python3
 """
-Hermes cron data script: Fetch OI, FR, FVG untuk analisis trading.
-Stdout dikirim ke agent sebagai context.
+Hermes cron data script: Fetch OI, FR, FVG via ccxt untuk analisis trading.
+
+Env config:
+  EXCHANGE          single exchange id (default 'binanceusdm')
+  EXCHANGE_FALLBACK comma-separated fallback chain — kalau EXCHANGE gagal,
+                    coba berikutnya. Contoh: "okx,kucoinfutures,bitget".
+                    Pakai ini di VPS yang Bybit/Binance di-block.
+  SYMBOLS           comma-separated ccxt symbols
+  TF                timeframe (1m, 5m, 15m, 1h, 4h, dst)
+
+Discover working exchange: python3 exchange_picker.py recommend
 """
 import asyncio
 import json
 import sys
 import os
+import time
 
 # pip install ccxt --break-system-packages
 import ccxt.async_support as ccxt
@@ -14,6 +24,7 @@ import ccxt.async_support as ccxt
 
 # ── Config ────────────────────────────────────────────────────────────
 EXCHANGE_NAME = os.getenv('EXCHANGE', 'binanceusdm')
+EXCHANGE_FALLBACK = [x.strip() for x in os.getenv('EXCHANGE_FALLBACK', '').split(',') if x.strip()]
 SYMBOLS = os.getenv('SYMBOLS', 'BTC/USDT:USDT,ETH/USDT:USDT,SOL/USDT:USDT').split(',')
 TIMEFRAME = os.getenv('TF', '4h')
 
@@ -56,63 +67,102 @@ def fr_label(fr):
     return 'EXTREME_LONG (-1)'
 
 
-# ── Main ─────────────────────────────────────────────────────────────
-async def fetch_all():
-    exchange = getattr(ccxt, EXCHANGE_NAME)({'enableRateLimit': True})
-    results = []
+# ── Per-symbol fetch ─────────────────────────────────────────────────
+async def fetch_symbol(exchange, symbol):
+    candles = await exchange.fetch_ohlcv(symbol, TIMEFRAME, limit=60)
+    fr = 0.0
+    if exchange.has.get('fetchFundingRate'):
+        try:
+            funding = await exchange.fetch_funding_rate(symbol)
+            fr = funding.get('fundingRate', 0.0) or 0.0
+        except Exception:
+            pass  # spot exchange / not supported — biarkan 0
 
+    price = candles[-1][4]
+    fvgs = detect_fvg(candles)
+    active_fvgs = [f for f in fvgs if f['status'] != 'mitigated']
+    nearest = None
+    if active_fvgs:
+        for f in active_fvgs:
+            f['dist_pct'] = round(abs(price - f['mid']) / price * 100, 2)
+        nearest = min(active_fvgs, key=lambda x: x['dist_pct'])
+        if nearest['dist_pct'] > 3.0:
+            nearest = None
+
+    closes = [c[4] for c in candles]
+    ema21 = closes[0]
+    k = 2 / 22
+    for c in closes[1:]:
+        ema21 = c * k + ema21 * (1 - k)
+
+    return {
+        'symbol': symbol,
+        'price': round(price, 2),
+        'funding_rate': round(fr * 100, 4),
+        'funding_label': fr_label(fr),
+        'ema21': round(ema21, 2),
+        'macro_bias': 'BULLISH' if price > ema21 else 'BEARISH',
+        'nearest_fvg': nearest,
+        'active_fvg_count': len(active_fvgs),
+    }
+
+
+# ── Main with fallback chain ─────────────────────────────────────────
+async def try_exchange(ex_id):
+    """Try one exchange; return (results, exchange_used) or (None, None) if fails."""
+    if ex_id not in ccxt.exchanges:
+        print(f"WARN: '{ex_id}' tidak dikenal di ccxt, skip", file=sys.stderr)
+        return None, None
+    try:
+        exchange = getattr(ccxt, ex_id)({'enableRateLimit': True, 'timeout': 12000})
+        await exchange.load_markets()
+    except Exception as e:
+        print(f"WARN: '{ex_id}' load_markets gagal ({str(e)[:80]}), skip", file=sys.stderr)
+        try:
+            await exchange.close()
+        except Exception:
+            pass
+        return None, None
+
+    results = []
     for symbol in SYMBOLS:
         symbol = symbol.strip()
         try:
-            candles, funding = await asyncio.gather(
-                exchange.fetch_ohlcv(symbol, TIMEFRAME, limit=60),
-                exchange.fetch_funding_rate(symbol),
-            )
-
-            price = candles[-1][4]
-            fr = funding['fundingRate']
-
-            # FVG
-            fvgs = detect_fvg(candles)
-            active_fvgs = [f for f in fvgs if f['status'] != 'mitigated']
-            nearest = None
-            if active_fvgs:
-                for f in active_fvgs:
-                    f['dist_pct'] = round(abs(price - f['mid']) / price * 100, 2)
-                nearest = min(active_fvgs, key=lambda x: x['dist_pct'])
-                if nearest['dist_pct'] > 3.0:
-                    nearest = None
-
-            # EMA untuk macro bias
-            closes = [c[4] for c in candles]
-            ema21 = closes[0]
-            k = 2 / 22
-            for c in closes[1:]:
-                ema21 = c * k + ema21 * (1 - k)
-
-            results.append({
-                'symbol': symbol,
-                'price': round(price, 2),
-                'funding_rate': round(fr * 100, 4),
-                'funding_label': fr_label(fr),
-                'ema21': round(ema21, 2),
-                'macro_bias': 'BULLISH' if price > ema21 else 'BEARISH',
-                'nearest_fvg': nearest,
-                'active_fvg_count': len(active_fvgs),
-            })
+            r = await fetch_symbol(exchange, symbol)
+            results.append(r)
         except Exception as e:
-            results.append({'symbol': symbol, 'error': str(e)})
-
-        await asyncio.sleep(0.5)
+            results.append({'symbol': symbol, 'error': str(e)[:120]})
+        await asyncio.sleep(0.3)
 
     await exchange.close()
-    return results
+    return results, ex_id
+
+
+async def fetch_all():
+    chain = [EXCHANGE_NAME] + EXCHANGE_FALLBACK
+    seen = set()
+    chain = [x for x in chain if not (x in seen or seen.add(x))]  # dedupe
+
+    for ex_id in chain:
+        results, used = await try_exchange(ex_id)
+        if results is None:
+            continue
+        # Kalau semua symbol error → coba next exchange
+        all_failed = all('error' in r for r in results)
+        if all_failed and len(chain) > 1:
+            print(f"WARN: '{used}' all symbols failed, trying next in chain",
+                  file=sys.stderr)
+            continue
+        return results, used
+
+    return [{'error': f'all {len(chain)} exchanges failed: {chain}'}], None
 
 
 if __name__ == '__main__':
-    data = asyncio.run(fetch_all())
+    data, used = asyncio.run(fetch_all())
     print(json.dumps({
-        'timestamp': asyncio.get_event_loop().time(),
+        'timestamp': int(time.time()),
+        'exchange': used,
         'timeframe': TIMEFRAME,
         'symbols': data,
     }, indent=2))

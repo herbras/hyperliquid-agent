@@ -2,8 +2,8 @@
 # 2 mode: (1) live timer + alert untuk open positions, (2) end-of-session review.
 
 model:
-  default: anthropic/claude-sonnet-4-6
-  provider: anthropic
+  default: x-ai/grok-4.1-fast
+  provider: openrouter
 
 timezone: "UTC"
 

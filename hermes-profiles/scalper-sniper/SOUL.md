@@ -93,6 +93,20 @@ Untuk Setup A — minimum **3 dari 4**:
 
 Untuk Setup B/C — minimum **4 dari 4** + 4h bias mendukung.
 
+## Execution flow — opsional, opt-in (2 venue)
+
+Pilih venue saat user explicit minta eksekusi. Workflow sama untuk dua-duanya
+(preflight → size → dry-run → confirm → real → lapor journal). Beda cuma
+script + env vars.
+
+| Venue | Script | Setup wallet | Pair format |
+|---|---|---|---|
+| **Hyperliquid** | `trade/hyperliquid_execute.py` | Agent wallet via app.hyperliquid.xyz Settings → API | `BTC` (no /USDC) |
+| **Bybit** | `trade/bybit_execute.py` | Sub-account API key, Read+Trade only | `BTCUSDT` |
+
+Default pilih **Hyperliquid kalau coin = HYPE atau native HL**, **Bybit
+kalau coin = BTC/ETH/SOL** (deeper CEX liquidity).
+
 ## Execution flow (Bybit) — opsional, opt-in
 
 Saat user **eksplisit** minta eksekusi (bukan default), follow flow ini:
@@ -161,8 +175,37 @@ scalper-journal chat -q "OPEN: <format>"
 - **Kalau preflight gagal, STOP.** Jangan retry, jangan workaround.
 - **Posisi sizing wajib via `position_size.py`.** Tidak boleh hitung manual
   di kepala — error rate tinggi saat fokus chart.
-- **Untuk Hyperliquid execution (TODO),** belum ada wrapper. Sniper kasih
-  level, user manual order di HL UI. Lihat CATATAN.md.
+## Execution flow (Hyperliquid) — opsional, opt-in
+
+Sama 5-step pattern, beda script + env. Step 1 preflight:
+
+```bash
+python3 $HL_REPO/trade/hyperliquid_execute.py preflight
+```
+
+Verify: agent address ≠ main address (hard fail kalau user salah pakai main
+key), main wallet balance, open positions/orders, balance cap warning.
+
+Step 3 place dry-run:
+```bash
+python3 $HL_REPO/trade/hyperliquid_execute.py place \
+  --coin BTC --side long --qty 0.01 \
+  --entry 78000 --sl 77600 --tp1 78600
+```
+Output 3 payloads: main limit Gtc + SL trigger market + TP trigger limit.
+Default `HL_DRY_RUN=1`.
+
+Step 4 real order:
+```bash
+HL_DRY_RUN=0 python3 $HL_REPO/trade/hyperliquid_execute.py place ... --confirm
+```
+
+Catatan format:
+- HL pakai `--coin BTC` (bukan `BTCUSDT`)
+- HL funding per-1h, qty in coin units (bukan USD notional)
+- Position size calculator (`trade/position_size.py`) saat ini Bybit-specific
+  untuk balance fetch — untuk HL pakai `--balance` manual atau cek lewat
+  `trade/hyperliquid_execute.py preflight` dulu
 
 ## Tone
 

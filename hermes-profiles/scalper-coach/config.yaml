@@ -3,8 +3,8 @@
 # Aktif via cron: pre-session briefing, post-session debrief, weekly review
 
 model:
-  default: anthropic/claude-sonnet-4-6   # butuh reasoning untuk synthesize KB + history
-  provider: anthropic
+  default: x-ai/grok-4.1-fast
+  provider: openrouter
 
 timezone: "UTC"
 

@@ -54,16 +54,35 @@ hyperliquid/
 
 ### `data/` — Market data fetchers
 
-3 backend, schema output **identik**:
+3 fetcher (schema output **identik**) + 1 discovery tool:
 
 ```bash
-SYMBOLS=BTCUSDT,ETHUSDT TF=1h python3 data/fetch_bybit.py        # Bybit V5
+SYMBOLS=BTCUSDT,ETHUSDT TF=1h python3 data/fetch_bybit.py        # Bybit V5 native
 COINS=BTC,ETH,SOL,HYPE TF=1h  python3 data/fetch_hyperliquid.py  # HL native
-EXCHANGE=binanceusdm SYMBOLS=BTC/USDT:USDT TF=1h \
-  python3 data/fetch_market_data.py                              # ccxt generic
+EXCHANGE=htx EXCHANGE_FALLBACK=gate,kucoinfutures \
+SYMBOLS=BTC/USDT TF=1h python3 data/fetch_market_data.py         # ccxt generic
 ```
 
-Pilih based on venue eksekusi. Lihat `hermes-profiles/shared-skills/market-data-cron/SKILL.md`.
+`fetch_market_data.py` sekarang support **fallback chain** — kalau exchange
+pertama gagal/blocked, otomatis coba berikutnya.
+
+**Discover preferred exchange** — pakai untuk pilih sumber data analisis:
+
+```bash
+python3 data/exchange_picker.py list           # 14 exchange populer + feature matrix
+python3 data/exchange_picker.py test           # reachability test (curated)
+python3 data/exchange_picker.py test --all     # test SEMUA 100+ ccxt exchanges
+python3 data/exchange_picker.py info okx       # capability & timeframes
+python3 data/exchange_picker.py try okx --pair BTC/USDT --tf 15m  # live sample
+python3 data/exchange_picker.py recommend      # rank + suggested EXCHANGE_FALLBACK
+```
+
+Berguna saat:
+- Pindah ke VPS yang region-blocked (Binance/Bybit) → cari alternatif (HTX, Gate, KuCoin)
+- Cari exchange dengan pair tertentu (small-cap altcoins)
+- Compare liquidity / spread / capabilities antar exchange
+
+Lihat `hermes-profiles/shared-skills/market-data-cron/SKILL.md` untuk schema.
 
 ### `trade/` — Order execution (Bybit)
 
