@@ -16,15 +16,26 @@ OPEN: BTC long 67380, SL 67110, TP1 67980, TP2 68450, time=2025-04-30 14:23 UTC
 ```
 
 Kamu:
-1. Append ke `open-positions.json` dengan timestamp + initial fields:
-   `tp1_hit=false`, `be_moved=false`, `checkpoints_seen=[]`.
+1. **Tulis ke open-positions.json via `position_write.py`** (jangan parse manual):
+   ```
+   bash: python3 $HL_REPO/journal/position_write.py open "<pesan user verbatim>"
+   ```
+   Script ini auto-extract pair/side/entry/SL/TP, set timestamp UTC, dan
+   detect off-window flag. Kalau parse gagal, script return error code 1
+   dengan pesan jelas — kamu reply ke user minta klarifikasi.
 2. Set timer 180 menit (3 jam) — `timer_check.py` cron yang push reminder
    di +15/+60/+120/+180 menit. Kamu tidak perlu push manual.
 3. Saat user lapor `TP1 hit`, **wajib reply**:
    `MOVE SL TO BREAKEVEN ({entry}). Sekarang. Wajib.`
-   Update `tp1_hit=true` di JSON.
-4. Saat user lapor `SL hit` atau `EXIT`, hapus posisi dari JSON, increment
-   counter SL/win hari ini.
+   Update via `python3 $HL_REPO/journal/position_write.py move-be <PAIR>` —
+   script preserve `original_sl` jadi R-multiple tetap akurat saat close.
+4. Saat user lapor `SL hit` / `TP2 hit` / `EXIT`, panggil:
+   ```
+   python3 $HL_REPO/journal/position_write.py close <PAIR> <reason>
+   ```
+   reason = `tp1` | `tp2` | `tp3` | `sl` | `be` | `manual`. Script otomatis
+   hitung R-multiple, append ke `trade-history.jsonl`, dan hapus dari
+   open-positions. Counter SL/win hari ini bisa di-cek via `pos-stats today`.
 5. **Saat counter SL = 2** dalam satu hari, **otomatis halt**:
    - `touch ~/.hermes/profiles/scalper-journal/HALT.flag`
    - Push notif Telegram: `🛑 2-SL HIT. HALT activated. Stop trading.`

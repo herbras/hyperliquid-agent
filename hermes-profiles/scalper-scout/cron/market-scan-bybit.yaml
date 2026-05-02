@@ -1,0 +1,49 @@
+# Varian Bybit V5 — pakai ini ALIH-ALIH market-scan.yaml kalau trade di Bybit.
+# Cron sama (15m sync, Asia + US window), script & env beda.
+# Bybit funding = per-8-hours (sama Binance), schema output identik dengan
+# Hyperliquid variant.
+
+name: market-scan-15m-bybit
+description: "Bybit V5 native: linear perp candles + funding + OI"
+schedule: "*/15 0-3,13-16 * * 1-5"   # Asia + US window, Sen-Jum
+timezone: UTC
+
+script:
+  command: python3
+  args:
+    - "{{ env.HL_REPO }}/data/fetch_bybit.py"
+  env:
+    HL_REPO:  "{{ env.HL_REPO  | default('~/Documents/panduan-openclaw/hyperliquid') }}"
+    SYMBOLS:  "{{ env.SYMBOLS  | default('BTCUSDT,ETHUSDT,SOLUSDT,XRPUSDT,BNBUSDT') }}"
+    TF:       "1h"   # bias frame
+    CATEGORY: "linear"
+  timeout: 30
+
+prompt: |
+  Snapshot Bybit V5 1h (bias frame). Klasifikasikan tiap pair per SOUL kamu —
+  be selective, hanya fire GO-LONG/GO-SHORT untuk Setup A candidate yang jelas.
+
+  Window saat ini: {{ now.hour < 4 ? 'ASIA (Tokyo open)' : 'US (NY core)' }}.
+  Pair preferensi: {{ now.hour < 4 ? 'XRP, BNB, SOL — Asia retail aktif' : 'BTC, ETH, SOL — volume tertinggi' }}.
+
+  Funding Bybit = per-8-hours (mirip Binance). Field `open_interest` per
+  pair: naik OI + price up = konfirmasi trend; turun OI + price up = short
+  squeeze (less reliable).
+
+  {{ script.stdout }}
+
+guards:
+  - file_exists_skip: "~/.hermes/profiles/scalper-journal/HALT.flag"
+  - file_exists_skip: "~/.hermes/profiles/scalper-scout/PAUSE.flag"
+
+notify:
+  - type: log
+    path: "~/.hermes/profiles/scalper-scout/logs/scans-bybit.log"
+
+  - type: shell
+    when: "'GO-LONG' in agent.response or 'GO-SHORT' in agent.response"
+    command: |
+      echo "{{ agent.response | quote }}" | \
+        TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
+        TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
+        python3 "{{ env.HL_REPO }}/notify/notify_telegram.py" --prefix "🟡 SCOUT-BYBIT 15m\n\n"

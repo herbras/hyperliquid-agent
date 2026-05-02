@@ -48,19 +48,28 @@ quick_commands:
   open:
     type: exec
     command: "cat ~/.hermes/profiles/scalper-journal/state/open-positions.json 2>/dev/null || echo '[]'"
+  pos-list:
+    type: exec
+    command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/journal/position_write.py list"
+  pos-stats:
+    type: exec
+    command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/journal/position_write.py stats today"
+  pos-stats-week:
+    type: exec
+    command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/journal/position_write.py stats week"
   halt:
     type: exec
     command: |
       touch ~/.hermes/profiles/scalper-journal/HALT.flag && \
       echo "🛑 HALT — 2-SL daily stop. Scout & sniper refuse trade." | \
-        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify_telegram.py --plain && \
+        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify/notify_telegram.py --plain && \
       echo "HALT flag SET — telegram notified."
   resume:
     type: exec
     command: |
       rm -f ~/.hermes/profiles/scalper-journal/HALT.flag && \
       echo "✅ HALT cleared. Trading resumed." | \
-        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify_telegram.py --plain && \
+        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify/notify_telegram.py --plain && \
       echo "HALT cleared."
   daily:
     type: alias
@@ -69,4 +78,4 @@ quick_commands:
     type: exec
     command: |
       echo "📱 Telegram test from scalper-journal — $(date -u +%FT%TZ)" | \
-        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify_telegram.py --plain
+        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify/notify_telegram.py --plain

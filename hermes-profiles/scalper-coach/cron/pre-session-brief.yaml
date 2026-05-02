@@ -18,7 +18,7 @@ prompt: |
   2. Baca LESSONS.md untuk lesson terbaru
   3. Baca trade-history.jsonl untuk performance week-to-date
   4. Cek economic events 24h ke depan via shell:
-     `python3 {{ env.HL_REPO }}/economic_calendar.py upcoming 24`
+     `python3 {{ env.HL_REPO }}/events/economic_calendar.py upcoming 24`
   5. Generate briefing format yang ada di SOUL.md mode 1.
 
 guards:
@@ -32,4 +32,4 @@ notify:
       echo "{{ agent.response | quote }}" | \
         TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
         TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
-        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "🧭 COACH BRIEF\n\n"
+        python3 "{{ env.HL_REPO }}/notify/notify_telegram.py" --prefix "🧭 COACH BRIEF\n\n"

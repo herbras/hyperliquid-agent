@@ -13,7 +13,7 @@ timezone: UTC
 script:
   command: python3
   args:
-    - "{{ env.HL_REPO }}/fetch_market_data.py"
+    - "{{ env.HL_REPO }}/data/fetch_market_data.py"
   env:
     HL_REPO:  "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
     EXCHANGE: "{{ env.EXCHANGE | default('binanceusdm') }}"
@@ -50,4 +50,4 @@ notify:
       echo "{{ agent.response | quote }}" | \
         TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
         TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
-        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "🎯 SCOUT 15m\n\n"
+        python3 "{{ env.HL_REPO }}/notify/notify_telegram.py" --prefix "🎯 SCOUT 15m\n\n"

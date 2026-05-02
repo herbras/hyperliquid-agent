@@ -33,4 +33,4 @@ notify:
       echo "{{ agent.response | quote }}" | \
         TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
         TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
-        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "📓 COACH DEBRIEF\n\n"
+        python3 "{{ env.HL_REPO }}/notify/notify_telegram.py" --prefix "📓 COACH DEBRIEF\n\n"

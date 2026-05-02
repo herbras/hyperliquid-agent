@@ -1,0 +1,36 @@
+# Cek events.json tiap 5 menit, set/unset PAUSE.flag berdasarkan jarak ke
+# event terdekat. Sumber events.json: investing.com via cron weekly-refresh.
+#
+# Window pause:
+#   CPI / NFP   : -30 / +60 menit
+#   FOMC        : -30 / +120 menit (ada press conference)
+#   FED_SPEAK   : -15 / +30 menit
+
+name: event-watch
+description: "Auto-pause sebelum CPI/NFP/FOMC, baca events.json"
+schedule: "*/5 * * * *"   # tiap 5 menit, 24/7
+timezone: UTC
+
+script:
+  command: python3
+  args:
+    - "{{ env.HL_REPO }}/events/pause_check.py"
+  env:
+    HL_REPO: "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
+    PAUSE_FLAG: "~/.hermes/profiles/scalper-scout/PAUSE.flag"
+    EVENTS_FILE: "~/.hermes/profiles/scalper-coach/state/events.json"
+  timeout: 10
+
+skip_agent: true
+
+# Hanya fire ke Telegram saat ada PERUBAHAN (pause aktif / cleared)
+notify:
+  - type: log
+    path: "~/.hermes/profiles/scalper-coach/logs/events.log"
+  - type: shell
+    when: "'PAUSE active' in script.stdout or 'cleared' in script.stdout"
+    command: |
+      echo "{{ script.stdout | quote }}" | \
+        TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
+        TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
+        python3 "{{ env.HL_REPO }}/notify/notify_telegram.py" --plain --prefix "📅 EVENT WATCH\n\n"

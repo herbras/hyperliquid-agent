@@ -10,7 +10,7 @@ timezone: UTC
 script:
   command: python3
   args:
-    - "{{ env.HL_REPO }}/timer_check.py"
+    - "{{ env.HL_REPO }}/journal/timer_check.py"
   env:
     HL_REPO: "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
     POSITIONS_FILE: "~/.hermes/profiles/scalper-journal/state/open-positions.json"
@@ -27,4 +27,4 @@ notify:
       echo "{{ script.stdout | quote }}" | \
         TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
         TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
-        python3 "{{ env.HL_REPO }}/notify_telegram.py" --prefix "⏱ JOURNAL TIMER\n\n"
+        python3 "{{ env.HL_REPO }}/notify/notify_telegram.py" --prefix "⏱ JOURNAL TIMER\n\n"

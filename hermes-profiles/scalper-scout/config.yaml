@@ -47,7 +47,7 @@ display:
 skills:
   config:
     market-data-cron:
-      script_path: "~/Documents/panduan-openclaw/hyperliquid/fetch_market_data.py"
+      script_path: "~/Documents/panduan-openclaw/hyperliquid/data/fetch_market_data.py"
       exchange: "binanceusdm"
       symbols: "BTC/USDT:USDT,ETH/USDT:USDT,SOL/USDT:USDT"
       timeframe: "15m"
@@ -55,7 +55,7 @@ skills:
 quick_commands:
   scan:
     type: exec
-    command: "EXCHANGE=binanceusdm SYMBOLS='BTC/USDT:USDT,ETH/USDT:USDT,SOL/USDT:USDT' TF=15m python3 ~/Documents/panduan-openclaw/hyperliquid/fetch_market_data.py"
+    command: "EXCHANGE=binanceusdm SYMBOLS='BTC/USDT:USDT,ETH/USDT:USDT,SOL/USDT:USDT' TF=15m python3 ~/Documents/panduan-openclaw/hyperliquid/data/fetch_market_data.py"
   bias:
     type: alias
     target: "/scan"

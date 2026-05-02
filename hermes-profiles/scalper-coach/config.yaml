@@ -68,12 +68,12 @@ quick_commands:
     target: "/note Knowledge base query — jawab dengan citation dari STRATEGI-15M.md atau lux-algo-guide"
   upcoming:
     type: exec
-    command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/economic_calendar.py upcoming 24"
+    command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/events/economic_calendar.py upcoming 24"
   stats:
     type: exec
-    command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/position_write.py stats week"
+    command: "python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/journal/position_write.py stats week"
   test-tg:
     type: exec
     command: |
       echo "📱 Coach test from scalper-coach — $(date -u +%FT%TZ)" | \
-        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify_telegram.py --plain
+        python3 ${HL_REPO:-~/Documents/panduan-openclaw/hyperliquid}/notify/notify_telegram.py --plain

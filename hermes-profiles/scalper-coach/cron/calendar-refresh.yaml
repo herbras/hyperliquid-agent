@@ -1,0 +1,33 @@
+# Refresh events.json dari investing.com tiap Senin 06:00 UTC.
+# CPI/NFP cuma muncul ~1 bulan ke depan; refresh weekly cukup.
+# Pakai script di shared-skills/lightpanda-scrape (curl-based, no Lightpanda needed
+# karena endpoint XHR investing.com belum CF-protected).
+
+name: calendar-refresh
+description: "Weekly fetch investing.com economic calendar → events.json"
+schedule: "0 6 * * 1"   # Senin 06:00 UTC (= 13:00 WIB Senin)
+timezone: UTC
+
+script:
+  command: python3
+  args:
+    - "{{ env.HL_REPO }}/hermes-profiles/shared-skills/lightpanda-scrape/scripts/scrape_investing_calendar.py"
+    - "--months"
+    - "2"
+    - "--output"
+    - "~/.hermes/profiles/scalper-coach/state/events.json"
+  env:
+    HL_REPO: "{{ env.HL_REPO | default('~/Documents/panduan-openclaw/hyperliquid') }}"
+  timeout: 30
+
+skip_agent: true
+
+notify:
+  - type: log
+    path: "~/.hermes/profiles/scalper-coach/logs/calendar-refresh.log"
+  - type: shell
+    command: |
+      echo "{{ script.stderr | quote }}" | \
+        TELEGRAM_BOT_TOKEN="{{ env.TELEGRAM_BOT_TOKEN }}" \
+        TELEGRAM_CHAT_ID="{{ env.TELEGRAM_CHAT_ID }}" \
+        python3 "{{ env.HL_REPO }}/notify/notify_telegram.py" --plain --prefix "📅 CALENDAR REFRESH\n\n"

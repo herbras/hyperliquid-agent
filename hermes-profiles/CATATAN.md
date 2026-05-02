@@ -51,6 +51,28 @@ Yang berubah:
 
 Detail lengkap: `STRATEGI-15M.md`.
 
+### 1b. Venue: Bybit + Hyperliquid (dual support)
+
+Kita support **dua** venue eksekusi:
+
+- **Bybit** — CEX dengan deep liquidity, semua pair major (BTC/ETH/SOL +
+  altcoin). Fee competitive. Best untuk volume tinggi.
+- **Hyperliquid** — on-chain perp, transparency lebih, native HYPE pair.
+  Best untuk pair retail Asia + on-chain native.
+
+Tidak pilih satu — user bisa pakai keduanya tergantung pair:
+- HYPE → Hyperliquid (native)
+- BTC/ETH/SOL/XRP → Bybit (CEX deep liquidity)
+
+Atau full Bybit / full HL — terserah preferensi & comfort venue.
+
+**Yang dibangun untuk multi-venue support:**
+- `fetch_bybit.py` — V5 public API, schema identik dengan HL native
+- `cron/market-scan-bybit.yaml` — variant cron Bybit di scout
+- Both fetcher pakai output schema sama → scout/sniper tidak perlu beda
+  per venue
+- Trade execution per-venue masih TODO (lihat list bawah)
+
 ### 2. Window aktif: Asia + US, bukan 24/7
 
 Cron scout cuma fire di window dengan volume + volatility tinggi. Sisanya
@@ -98,37 +120,74 @@ di Hyperliquid (banyak retail Asia).
 
 ```
 hyperliquid/
-├── lux-algo-guide-verified-v2.md      # playbook original (5m, dijadikan referensi)
-├── STRATEGI-15M.md                    # playbook 15m + session windows (BARU)
-├── CATATAN.md                         # dokumen ini
-├── fetch_market_data.py               # ccxt generic (Binance dst)
-├── fetch_hyperliquid.py               # Hyperliquid native
-├── notify_telegram.py                 # helper push ke Telegram
-├── timer_check.py                     # baca posisi + reminder timer
-├── crypto-trader-signals-v4.skill     # binary skill bundled
+├── README.md                          # entry point — overview + quick map
+├── STRATEGI-15M.md                    # playbook 15m current (canonical)
+├── lux-algo-guide-verified-v2.md      # playbook 5m original (referensi)
+├── crypto-trader-signals-v4.skill     # binary skill artifact
+│
+├── data/                              # market data fetchers (read-only)
+│   ├── fetch_market_data.py           # ccxt generic (Binance/OKX/dst)
+│   ├── fetch_hyperliquid.py           # Hyperliquid native /info API
+│   └── fetch_bybit.py                 # Bybit V5 public API
+│
+├── trade/                             # order execution (high-stakes, dry-run default)
+│   ├── bybit_execute.py               # V5 HMAC, place/position/cancel
+│   └── position_size.py               # qty calc dari risk %, fetch balance
+│
+├── journal/                           # state management
+│   ├── position_write.py              # parse NL → open-positions.json
+│   └── timer_check.py                 # reminder 15/60/120/180 min
+│
+├── events/                            # economic calendar / PAUSE.flag
+│   ├── pause_check.py                 # baca events.json, manage PAUSE.flag
+│   └── economic_calendar.py           # legacy ForexFactory fallback
+│
+├── notify/                            # alert helpers
+│   └── notify_telegram.py             # push Telegram (MarkdownV2 escape)
+│
+├── backtest/                          # strategy validation
+│   └── backtest_15m.py                # MVP Setup A long-only replay
+│
 └── hermes-profiles/
-    ├── README.md                      # cara install
-    ├── CATATAN.md                     # → ini juga ada di sini (canonical di parent)
-    ├── scalper-scout/                 # 1h bias + 15m FVG scanner
-    │   ├── config.yaml
-    │   ├── SOUL.md
-    │   ├── .env.example
+    ├── README.md                      # install + flow harian
+    ├── CATATAN.md                     # canonical decision log
+    │
+    ├── scalper-scout/                 # 1h bias scanner
+    │   ├── config.yaml + SOUL.md + .env.example
+    │   └── cron/{market-scan, -hyperliquid, -bybit}.yaml
+    │
+    ├── scalper-sniper/                # 15m setup hunter
+    │   └── config.yaml + SOUL.md + .env.example
+    │
+    ├── scalper-journal/               # trade manager
+    │   ├── config.yaml + SOUL.md + .env.example
+    │   ├── cron/timer-check.yaml
+    │   └── state-template/LESSONS.md  # template, copy ke ~/.hermes saat install
+    │
+    ├── scalper-coach/                 # NEW — agent aktif berbasis KB
+    │   ├── config.yaml + SOUL.md + .env.example
     │   └── cron/
-    │       ├── market-scan.yaml                # ccxt mode
-    │       └── market-scan-hyperliquid.yaml    # HL native mode
-    ├── scalper-sniper/                # 15m setup hunter (Setup A/B/C)
-    │   ├── config.yaml
-    │   ├── SOUL.md
-    │   └── .env.example
-    ├── scalper-journal/               # trade manager + post-mortem
-    │   ├── config.yaml
-    │   ├── SOUL.md
-    │   ├── .env.example
-    │   └── cron/
-    │       └── timer-check.yaml
+    │       ├── pre-session-brief.yaml      # 23:30 & 12:30 UTC
+    │       ├── post-session-debrief.yaml   # 04:15 & 17:15 UTC
+    │       ├── weekly-review.yaml          # Jumat 17:30 UTC
+    │       └── event-watch.yaml            # tiap 10 min, auto PAUSE.flag
+    │
     └── shared-skills/
-        ├── lux-algo-smc/SKILL.md
-        └── market-data-cron/SKILL.md
+        ├── lux-algo-smc/SKILL.md           # konsep SMC + playbook 15m
+        ├── market-data-cron/SKILL.md       # wrapper fetch scripts
+        └── scalper-knowledge/SKILL.md      # NEW — KB aggregate
+            └── references/
+                ├── STRATEGI-15M.md
+                └── CATATAN.md
+```
+
+Runtime state (dibuat saat install, di-update terus):
+
+```
+~/.hermes/profiles/scalper-journal/state/
+├── open-positions.json       # posisi aktif
+├── trade-history.jsonl       # closed trades (append-only)
+└── LESSONS.md                # rules dari pengalaman, di-update coach
 ```
 
 ## Flow harian (contoh hari ideal)
@@ -176,17 +235,81 @@ hyperliquid/
 
 Total screen time scalping hari ini: **~30 menit total**, bukan 8 jam.
 
-## Yang BELUM dibangun (TODO list)
+## Yang sudah dibangun (status update)
 
-- [ ] Auto-write `open-positions.json` dari pesan natural-language journal.
-      Saat ini user harus manual format ulang. Bisa pakai tool `position-write`
-      di journal yang extract pair/entry/SL/TP dari kalimat.
-- [ ] Hyperliquid trade execution via SDK (sub-account dengan agent wallet).
+- [x] **Auto-write `open-positions.json`** — `position_write.py` parse natural
+      language ke JSON, hitung R-multiple, append `trade-history.jsonl`.
+- [x] **Backtest harness MVP** — `backtest_15m.py` replay 1h+15m, simulate
+      Setup A long-only, output WR + RR vs target STRATEGI-15M.md.
+- [x] **Auto-PAUSE economic events** — `economic_calendar.py` fetch
+      ForexFactory, set/unset PAUSE.flag 30 min before / 15 min after event
+      high-impact USD. Cron coach event-watch tiap 10 menit.
+- [x] **`scalper-coach` profile** — agent ke-4 yang aktif:
+      pre-session briefing, post-session debrief, weekly review, KB query.
+      Baca STRATEGI-15M + CATATAN + LESSONS.md + trade-history.
+- [x] **Knowledge base infrastructure** — skill `scalper-knowledge` agregat
+      semua doc + dynamic LESSONS.md yang di-append coach setiap debrief.
+
+## Yang BELUM dibangun (TODO list aktif)
+
+> Prioritas: implement saat sudah validate end-to-end di trading nyata.
+> Jangan bangun semua sekaligus — feedback dari real trading akan kasih
+> tahu mana yang penting dulu.
+
+### Trading execution (paling impactful kalau jadi)
+
+- [ ] **Hyperliquid trade execution via SDK** — sub-account dengan agent
+      wallet. Sniper validate setup → confirm → auto-place order limit di
+      50% OB. SL/TP pre-set. Pakai HL Python SDK.
       Saat ini sniper cuma kasih level, user manual order.
-- [ ] Backtest harness — replay candle history vs SOUL rules untuk validate
-      bahwa "be wide" 15m benar-benar lebih profitable di kondisi recent.
-- [ ] Auto-detect 2-SL → otomatis touch HALT.flag, bukan manual `/halt`.
-- [ ] News/event calendar integration — auto-PAUSE 30 menit sebelum CPI/FOMC.
+
+- [x] **Bybit trade execution wrapper minimal** — `bybit_execute.py`
+      (HMAC V5, dry-run default), `position_size.py` (qty calc dari
+      risk %). Wired ke sniper SOUL execution flow (preflight → size →
+      dry-run → confirm → real). Tested dry-run end-to-end.
+- [ ] **Bybit trade execution via official AI Skill** — install
+      `bybit-exchange/skills` (https://github.com/bybit-exchange/skills)
+      sebagai upgrade dari wrapper minimal. Tambahan dari official:
+      RSA signing, auto-update, lebih lengkap (spot/inverse/options).
+      Kita pakai minimal wrapper dulu untuk control & predictability,
+      official skill = upgrade path kalau butuh fitur lebih.
+
+- [ ] **Pilihan venue per setup** — sniper pilih venue (HL vs Bybit) berdasar
+      pair: HYPE → HL, BTC/ETH/SOL → Bybit (deeper liquidity), atau
+      vice-versa. Logic disimpan di `STRATEGI-15M.md` "Pair preference".
+
+### Strategy validation (low-priority sebelum trade nyata)
+
+- [ ] **Auto-detect 2-SL → HALT.flag** — journal SOUL handle ini di
+      narrative, tapi belum tested e2e. Verify hari pertama trading.
+
+- [ ] **Backtest Setup B & C** — saat ini cuma Setup A. B/C butuh logic
+      detection lebih kompleks (CHoCH detection, EQH/EQL sweep). Output
+      WR per setup biar bisa di-compare apakah kita harus skip B/C
+      seperti yang STRATEGI-15M.md sarankan.
+
+- [ ] **Multi-pair backtest aggregator** — sekarang per-pair (BTC, SOL,
+      dst). Perlu script loop semua pair + comparative report (which pair
+      paling profitable di window mana, per setup).
+
+- [ ] **Backtest cross-venue** — replay sama strategi di Bybit vs HL data
+      30 hari, lihat venue mana lebih profitable untuk pair yang sama
+      (slippage, funding cost, liquidation depth).
+
+### Quality of life
+
+- [x] **Position size calculator** — `position_size.py` selesai. Input
+      pair/entry/SL/side, fetch balance dari Bybit (atau --balance manual),
+      output qty + notional + margin + JSON parsable. Auto-SKIP saat SL
+      > 1.5% per STRATEGI-15M.md.
+
+- [ ] **Cross-venue PAUSE.flag** — saat ini PAUSE.flag global. Mungkin
+      butuh per-venue (Bybit halt karena CEX downtime tidak harus halt
+      HL trading).
+
+- [ ] **Live trade tracking di trade-history** — auto-fetch fill data dari
+      Bybit/HL API, append ke trade-history.jsonl tanpa user manual lapor.
+      Pre-req: trade execution sudah jalan.
 
 ## Catatan filosofis
 
